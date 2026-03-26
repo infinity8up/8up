@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "16763749845",
+    "project_id": "eight-up",
+    "storage_bucket": "eight-up.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:16763749845:android:f281c60d1700b429d1695c",
+        "android_client_info": {
+          "package_name": "com.eightup.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "16763749845-laki8hcj5ts0eeu4fsdaapsaick1ug6a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eightup.app",
+            "certificate_hash": "a0014dc14388a68de7731c6ead3f2d8eb981b84c"
+          }
+        },
+        {
+          "client_id": "16763749845-qjqkuovh0o7hj594lk2llqstqsjdp0p4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuXgnHKv0ZhEhQNkjSYM3nY9smAzLYuFo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "16763749845-qjqkuovh0o7hj594lk2llqstqsjdp0p4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

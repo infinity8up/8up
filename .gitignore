@@ -1,0 +1,42 @@
+.firebaserc
+.firebase
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+
+# Secrets
+.env
+app/.env
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub/
+**/build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Android generated
+app/android/.gradle/
+app/android/local.properties
+app/android/key.properties
+app/android/app/debug/
+app/android/app/profile/
+app/android/app/release/
+
+# iOS generated
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/ephemeral/
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/Flutter/Generated.xcconfig
+
+# Supabase local
+supabase/.temp/
