@@ -157,8 +157,21 @@ class AuthRepository {
   }
 
   Future<void> signInWithApple() async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
-      throw Exception('Apple 로그인은 현재 iPhone 앱에서만 지원합니다.');
+    if (kIsWeb) {
+      throw Exception('Apple 로그인은 현재 모바일 앱에서만 지원합니다.');
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.apple,
+        redirectTo: currentAuthRedirectUrl(),
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      throw Exception('Apple 로그인은 현재 iPhone 또는 Android 앱에서만 지원합니다.');
     }
 
     final rawNonce = _generateNonce();

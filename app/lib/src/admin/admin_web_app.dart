@@ -3427,6 +3427,7 @@ class _TemplatesPageState extends State<_TemplatesPage> {
   List<AdminInstructor> _instructors = const [];
   List<AdminPassProduct> _products = const [];
   bool _loading = false;
+  bool _showArchivedTemplates = false;
   String? _error;
   String? _studioId;
 
@@ -3500,6 +3501,12 @@ class _TemplatesPageState extends State<_TemplatesPage> {
                   subtitle: '지금은 사용하지 않지만 나중에 다시 활성화할 수 있습니다.',
                   emptyTitle: '보관된 템플릿이 없습니다',
                   emptyDescription: '비활성화한 템플릿은 이 구역에 모여 보입니다.',
+                  isCollapsed: !_showArchivedTemplates,
+                  onToggleCollapsed: () {
+                    setState(() {
+                      _showArchivedTemplates = !_showArchivedTemplates;
+                    });
+                  },
                   children: inactiveTemplates
                       .map(_buildTemplateCard)
                       .toList(growable: false),
@@ -6986,7 +6993,7 @@ class _SessionsPageState extends State<_SessionsPage> {
         ),
         content: Text(
           '${Formatters.monthDay(session.sessionDate)} ${Formatters.time(session.startAt)} ${session.className} 수업을 완전히 삭제합니다.\n'
-          '예약 내역이 없는 수업만 삭제할 수 있습니다.',
+          '예약 내역이나 예약 취소 내역이 없는 수업만 삭제할 수 있습니다.',
         ),
         actions: [
           FilledButton(
@@ -7014,7 +7021,11 @@ class _SessionsPageState extends State<_SessionsPage> {
       if (!mounted) {
         return;
       }
-      showAppSnackBarWithMessenger(messenger, error.toString(), isError: true);
+      showAppSnackBarWithMessenger(
+        messenger,
+        ErrorText.format(error),
+        isError: true,
+      );
     }
   }
 
@@ -13867,6 +13878,8 @@ class _AdminStatusBucketSection extends StatelessWidget {
     required this.emptyTitle,
     required this.emptyDescription,
     required this.children,
+    this.isCollapsed = false,
+    this.onToggleCollapsed,
   });
 
   final String title;
@@ -13874,17 +13887,37 @@ class _AdminStatusBucketSection extends StatelessWidget {
   final String emptyTitle;
   final String emptyDescription;
   final List<Widget> children;
+  final bool isCollapsed;
+  final VoidCallback? onToggleCollapsed;
 
   @override
   Widget build(BuildContext context) {
+    final canToggle = onToggleCollapsed != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            if (canToggle)
+              TextButton.icon(
+                onPressed: onToggleCollapsed,
+                icon: Icon(
+                  isCollapsed
+                      ? Icons.keyboard_arrow_down_rounded
+                      : Icons.keyboard_arrow_up_rounded,
+                ),
+                label: Text(isCollapsed ? '열기' : '접기'),
+              ),
+          ],
         ),
         const SizedBox(height: 6),
         Text(
@@ -13893,15 +13926,25 @@ class _AdminStatusBucketSection extends StatelessWidget {
             context,
           ).textTheme.bodySmall?.copyWith(color: AppColors.subtle),
         ),
-        const SizedBox(height: 14),
-        SurfaceCard(
-          child: children.isEmpty
-              ? EmptySection(title: emptyTitle, description: emptyDescription)
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: children,
-                ),
-        ),
+        if (isCollapsed) ...[
+          const SizedBox(height: 6),
+          Text(
+            children.isEmpty ? '보관된 항목이 없습니다.' : '${children.length}개 항목이 숨겨져 있습니다.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.subtle),
+          ),
+        ] else ...[
+          const SizedBox(height: 14),
+          SurfaceCard(
+            child: children.isEmpty
+                ? EmptySection(title: emptyTitle, description: emptyDescription)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: children,
+                  ),
+          ),
+        ],
       ],
     );
   }

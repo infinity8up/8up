@@ -134,7 +134,9 @@ class _AuthFormPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appleSupported =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(32),

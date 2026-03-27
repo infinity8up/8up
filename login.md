@@ -36,27 +36,30 @@
   - Android: **native Google SDK + Supabase `signInWithIdToken`**
   - iOS: **Supabase `signInWithOAuth(...)` 브라우저 OAuth**
 - Apple:
-  - iOS에서 **native Apple SDK + Supabase `signInWithIdToken`** 를 추후 추가
+  - iOS: **native Apple SDK + Supabase `signInWithIdToken`**
+  - Android: **Supabase `signInWithOAuth(...)` 브라우저 OAuth**
 
 이렇게 나눈 이유는 iOS native Google 로그인에서 `nonce` mismatch 이슈가 발생하기 쉬웠기 때문입니다.  
 현재 앱은 이미 `eightup://login-callback/` 딥링크를 갖고 있으므로, iOS Google은 브라우저 OAuth가 더 단순하고 안정적입니다.
 
 ## 3. 추천 범위
 
-1차 구현은 아래를 추천합니다.
+현재 구현/설정은 아래를 기준으로 맞추면 됩니다.
 
 - Google 로그인:
   - Android는 native
   - iOS는 브라우저 OAuth
-- Apple 로그인: iOS만 우선
+- Apple 로그인:
+  - iOS는 native
+  - Android는 브라우저 OAuth
 
 이유:
 
-- Apple 로그인은 iOS 배포 시 사실상 필수에 가깝다
-- Android에서 Apple 로그인을 native처럼 다루려면 Service ID / callback / 웹 인증 흐름까지 추가되어 복잡도가 커진다
+- Apple 로그인은 iOS에서는 native가 가장 안정적이다
+- Android에서는 Apple native SDK가 없어서 브라우저 OAuth가 정석이다
+- 현재 앱은 이미 `eightup://login-callback/` 딥링크를 갖고 있어 Android Apple OAuth를 붙이기 쉽다
 
-이 문서에서는 **Google는 Android native + iOS 브라우저 OAuth**, **Apple은 iOS 우선** 기준으로 설명합니다.  
-Android에서 Apple까지 붙이고 싶으면 마지막의 `확장안`을 보면 됩니다.
+이 문서에서는 **Google는 Android native + iOS 브라우저 OAuth**, **Apple은 iOS native + Android 브라우저 OAuth** 기준으로 설명합니다.
 
 ## 4. Google 로그인 구현
 
@@ -273,10 +276,19 @@ Supabase Dashboard에서 Apple provider를 활성화합니다.
 
 필요 값:
 
-- Services ID / client ID
+- `Client IDs`
+  - iOS bundle ID: `com.eightup.app`
+  - Android/Web OAuth용 Services ID: 현재 8UP 기준 `com.eightup.app.auth`
+- OAuth용 Secret Key
+  - Apple signing key(`.p8`)로 생성한 **JWT client secret**
 - Team ID
 - Key ID
-- private key (`.p8`)
+
+현재 8UP 실사용 예시는 아래 조합입니다.
+
+- bundle ID: `com.eightup.app`
+- Services ID: `com.eightup.app.auth`
+- Supabase `Client IDs`: `com.eightup.app.auth,com.eightup.app`
 
 ### 5-2. Apple Developer 준비
 
@@ -294,11 +306,52 @@ Apple은 Google보다 준비 단계가 더 많습니다.
 - Return URL 설정
 - Sign in with Apple key 생성
 
+실무 순서는 아래가 가장 안전합니다.
+
+1. Apple Developer `Identifiers > App IDs`에서 `com.eightup.app` 확인
+2. `Sign in with Apple` capability 활성화
+3. `Identifiers > Services IDs`에서 `com.eightup.app.auth` 생성
+4. Services ID의 Sign in with Apple 설정에서 아래 2개 등록
+   - Primary App ID: `com.eightup.app`
+   - Return URL: `https://<project-ref>.supabase.co/auth/v1/callback`
+5. `Keys`에서 Sign in with Apple key 생성 후 `.p8` 다운로드
+6. `.p8`로 client secret JWT 생성
+   - Account ID / Team ID: Apple Developer 우측 상단의 Team ID
+   - Service ID: `com.eightup.app.auth`
+   - Key ID: `AuthKey_XXXXXXXXXX.p8` 파일명의 `XXXXXXXXXX`
+7. Supabase Apple provider에 아래 값 입력
+   - Client IDs: `com.eightup.app.auth,com.eightup.app`
+   - Secret Key (for OAuth): 생성한 JWT
+
 주의:
 
 - Apple Developer 유료 계정이 필요합니다
 - Apple private email relay를 쓰는 사용자가 있을 수 있으므로 메일 발송이 있다면 private relay 대응이 필요합니다
+- `나의 이메일 가리기`는 이메일이 없는 것이 아니라 Apple relay 이메일을 쓰는 것입니다
 - `fullName`, `email`은 **최초 동의 시 한 번만** 내려오는 경우가 많으므로 첫 로그인 때 바로 저장해야 합니다
+
+#### Apple OAuth secret 6개월 갱신
+
+Supabase의 Apple `Secret Key (for OAuth)`는 영구 키가 아니라, Apple 규격의 **만료되는 JWT**입니다.
+
+- Apple은 이 client secret JWT의 만료(`exp`)를 최대 6개월까지만 허용합니다
+- 6개월이 지나면 Android/Web의 Apple OAuth 로그인이 실패할 수 있습니다
+- 이때 `.p8`를 새로 만드는 것이 아니라 **같은 값으로 새 JWT만 다시 생성**하면 됩니다
+
+다시 generate할 때 그대로 두는 값:
+
+- Team ID
+- Service ID: `com.eightup.app.auth`
+- Key ID
+- `.p8` private key 파일
+
+다시 generate할 때 바뀌는 값:
+
+- `iat`
+- `exp`
+
+즉 6개월 뒤에는 브라우저 생성기에서 같은 `Team ID / Service ID / Key ID / .p8`를 넣고 다시 생성한 뒤,
+새 JWT 문자열만 Supabase `Secret Key (for OAuth)`에 덮어쓰면 됩니다.
 
 ### 5-3. Flutter 의존성 추가
 
@@ -319,7 +372,7 @@ dependencies:
 - Xcode `Signing & Capabilities`에서 `Sign in with Apple` 추가
 - bundle id가 Apple Developer의 App ID와 일치해야 함
 
-현재 `Info.plist`에는 `eightup` URL scheme만 있으므로, Apple native iOS만 먼저 붙일 경우 `Info.plist` 추가 작업은 상대적으로 적고, capability 설정이 핵심입니다.
+현재 `Info.plist`와 AndroidManifest에는 `eightup://login-callback/` 딥링크가 이미 있으므로, Android Apple OAuth에서 추가 앱 코드 설정은 크지 않고 Supabase/Apple Console 설정이 핵심입니다.
 
 ### 5-5. 앱 코드 변경 포인트
 
@@ -353,6 +406,15 @@ String sha256Of(String input) {
 
 ```dart
 Future<void> signInWithApple() async {
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.apple,
+      redirectTo: currentAuthRedirectUrl(),
+      authScreenLaunchMode: LaunchMode.externalApplication,
+    );
+    return;
+  }
+
   final rawNonce = generateNonce();
   final hashedNonce = sha256Of(rawNonce);
 
@@ -472,21 +534,21 @@ Apple은 이름/이메일을 항상 주지 않습니다.
 3. 이름/이메일/휴대폰 보정 흐름 추가
 4. Apple 로그인 iOS 붙이기
 5. App Store 제출 전 Apple 버튼 노출 정책 정리
-6. 필요하면 Android용 Apple 로그인 확장
+6. Android Apple OAuth 설정 확인
 
 ## 9. Android에서 Apple 로그인까지 붙이고 싶다면
 
-이건 2차 작업으로 두는 것을 추천합니다.
+현재 구현은 이 방식을 사용합니다.
 
 추가 필요 사항:
 
 - Apple Service ID
 - callback URL
 - Android에서 web-based Apple auth 흐름
-- 또는 `sign_in_with_apple` Android integration에 맞는 callback activity/endpoint 구성
+- Supabase Apple provider의 OAuth secret JWT
 
 현재 프로젝트는 이미 `eightup://login-callback/`을 갖고 있으므로,  
-브라우저 OAuth 기반 Apple 로그인 fallback을 붙일 기반은 있습니다.
+브라우저 OAuth 기반 Apple 로그인 fallback을 바로 사용할 수 있습니다.
 
 ## 10. 현재 코드 기준 실제 수정 파일
 

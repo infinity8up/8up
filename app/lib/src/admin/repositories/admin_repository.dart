@@ -286,7 +286,9 @@ class AdminRepository {
         .eq('class_template_id', templateId)
         .limit(1);
     if (sessions.isNotEmpty) {
-      throw StateError('개설된 수업이 있는 템플릿은 삭제할 수 없습니다.');
+      throw StateError(
+        '개설된 수업 회차가 있는 템플릿은 삭제할 수 없습니다. 회원 앱 노출과 조회를 위해 수업 회차가 템플릿에 연결된 상태여야 합니다.',
+      );
     }
 
     await _client.from('class_templates').delete().eq('id', templateId);

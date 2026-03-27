@@ -280,10 +280,20 @@ order by jobname;
 
 Apple 로그인을 실제로 사용할 경우:
 
-- Apple Developer에서 Service ID / Key 준비
+- iOS bundle ID 확인
+  - `com.eightup.app`
+- Apple Developer에서 `Sign in with Apple` capability 활성화
+- Apple Developer에서 Service ID 생성
+  - 예: `com.eightup.app.service`
+- Apple Return URL 등록
+  - `https://<project-ref>.supabase.co/auth/v1/callback`
+- Apple signing key(`.p8`) 생성 후 client secret JWT 발급
 - Supabase Apple provider 활성화
-- Redirect URL / Return URL 설정
-- iOS bundle / capability와 함께 검증
+  - Client IDs: `com.eightup.app.service,com.eightup.app`
+  - Secret Key (for OAuth): 위 JWT
+- Supabase Redirect URLs에 앱 딥링크 허용
+  - `eightup://login-callback/`
+- iOS capability / Android 브라우저 OAuth 둘 다 실제 기기에서 검증
 
 ## 9. Storage / 이미지 업로드 확인
 
