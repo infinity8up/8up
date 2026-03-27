@@ -1,7 +1,7 @@
 name: eightup_user_app
 description: "Member-facing studio booking app for pass-based studios."
 publish_to: 'none'
-version: 1.0.3+10
+version: 1.0.4+11
 
 environment:
   sdk: ^3.8.1
