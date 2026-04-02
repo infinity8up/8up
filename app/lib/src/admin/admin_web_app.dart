@@ -1230,6 +1230,127 @@ class _AdminBrandMark extends StatelessWidget {
   }
 }
 
+const double _adminShellSidebarWidth = 300;
+const double _adminShellCompactBreakpoint = 1120;
+const double _adminShellMaxContentWidth = 1380;
+
+class _ResponsiveAdminScaffold extends StatelessWidget {
+  const _ResponsiveAdminScaffold({
+    required this.wideSidebar,
+    required this.compactSidebar,
+    required this.content,
+    required this.compactTitle,
+    required this.compactSubtitle,
+  });
+
+  final Widget wideSidebar;
+  final Widget compactSidebar;
+  final Widget content;
+  final String compactTitle;
+  final String compactSubtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < _adminShellCompactBreakpoint;
+        if (compact) {
+          return Scaffold(
+            appBar: AppBar(
+              toolbarHeight: 72,
+              titleSpacing: 0,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    compactSubtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.subtle,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    compactTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            drawer: Drawer(
+              width: math.min(constraints.maxWidth * 0.92, 360),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SingleChildScrollView(child: compactSidebar),
+                ),
+              ),
+            ),
+            body: SafeArea(
+              top: false,
+              child: _AdminShellContentArea(
+                padding: const EdgeInsets.all(16),
+                child: content,
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          body: SafeArea(
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 0, 20),
+                  child: SizedBox(
+                    width: _adminShellSidebarWidth,
+                    child: wideSidebar,
+                  ),
+                ),
+                Expanded(
+                  child: _AdminShellContentArea(
+                    padding: const EdgeInsets.all(20),
+                    child: content,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AdminShellContentArea extends StatelessWidget {
+  const _AdminShellContentArea({required this.padding, required this.child});
+
+  final EdgeInsets padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: padding,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: _adminShellMaxContentWidth,
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _PlatformAdminShell extends StatelessWidget {
   const _PlatformAdminShell();
 
@@ -1245,108 +1366,120 @@ class _PlatformAdminShell extends StatelessWidget {
     final auth = context.watch<AdminAuthController>();
     final profile = session.platformProfile!;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
+    return _ResponsiveAdminScaffold(
+      wideSidebar: _PlatformAdminSidebar(
+        profile: profile,
+        onSignOut: auth.signOut,
+        compact: false,
+      ),
+      compactSidebar: _PlatformAdminSidebar(
+        profile: profile,
+        onSignOut: () {
+          Navigator.of(context).pop();
+          auth.signOut();
+        },
+        compact: true,
+      ),
+      compactTitle: _destination.label,
+      compactSubtitle: 'Platform Admin',
+      content: const _PlatformDashboardPage(),
+    );
+  }
+}
+
+class _PlatformAdminSidebar extends StatelessWidget {
+  const _PlatformAdminSidebar({
+    required this.profile,
+    required this.onSignOut,
+    required this.compact,
+  });
+
+  final PlatformAdminProfile profile;
+  final VoidCallback onSignOut;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final logoutButton = FilledButton.tonalIcon(
+      onPressed: onSignOut,
+      icon: const Icon(Icons.logout_rounded),
+      label: const Text('로그아웃'),
+    );
+
+    final content = <Widget>[
+      const _AdminBrandMark(subtitle: 'Platform Admin'),
+      const SizedBox(height: 18),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 0, 20),
-              child: SizedBox(
-                width: 300,
-                child: SurfaceCard(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _AdminBrandMark(subtitle: 'Platform Admin'),
-                      const SizedBox(height: 18),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.brandGradient,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '8UP 관리자',
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: AppColors.onPrimary.withValues(
-                                      alpha: 0.92,
-                                    ),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              profile.name ?? '8UP Platform Admin',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    color: AppColors.onPrimary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              profile.loginId,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.onPrimary.withValues(
-                                      alpha: 0.9,
-                                    ),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                            if (profile.email?.isNotEmpty == true) ...[
-                              const SizedBox(height: 10),
-                              Text(
-                                profile.email!,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: AppColors.onPrimary.withValues(
-                                        alpha: 0.88,
-                                      ),
-                                    ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const _AdminNavButton(
-                        destination: _destination,
-                        selected: true,
-                        onTap: _noop,
-                      ),
-                      const Spacer(),
-                      FilledButton.tonalIcon(
-                        onPressed: auth.signOut,
-                        icon: const Icon(Icons.logout_rounded),
-                        label: const Text('로그아웃'),
-                      ),
-                    ],
-                  ),
-                ),
+            Text(
+              '8UP 관리자',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppColors.onPrimary.withValues(alpha: 0.92),
+                fontWeight: FontWeight.w700,
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1380),
-                    child: const _PlatformDashboardPage(),
-                  ),
-                ),
+            const SizedBox(height: 12),
+            Text(
+              profile.name ?? '8UP Platform Admin',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppColors.onPrimary,
+                fontWeight: FontWeight.w800,
               ),
             ),
+            const SizedBox(height: 6),
+            Text(
+              profile.loginId,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.onPrimary.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (profile.email?.isNotEmpty == true) ...[
+              const SizedBox(height: 10),
+              Text(
+                profile.email!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.onPrimary.withValues(alpha: 0.88),
+                ),
+              ),
+            ],
           ],
         ),
       ),
+      const SizedBox(height: 18),
+      _AdminNavButton(
+        destination: _PlatformAdminShell._destination,
+        selected: true,
+        onTap: _noop,
+      ),
+    ];
+
+    return SurfaceCard(
+      padding: const EdgeInsets.all(18),
+      child: compact
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [...content, const SizedBox(height: 18), logoutButton],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ListView(padding: EdgeInsets.zero, children: content),
+                ),
+                const SizedBox(height: 12),
+                logoutButton,
+              ],
+            ),
     );
   }
 }
@@ -2082,234 +2215,43 @@ class _AdminShellState extends State<_AdminShell> {
       ),
       const _AdminGuidePage(),
     ];
+    final currentDestination = _destinations[_index];
 
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 0, 20),
-              child: SizedBox(
-                width: 300,
-                child: SurfaceCard(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _AdminBrandMark(),
-                      const SizedBox(height: 18),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.brandGradient,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  '스튜디오 정보',
-                                  style: Theme.of(context).textTheme.labelLarge
-                                      ?.copyWith(
-                                        color: AppColors.onPrimary.withValues(
-                                          alpha: 0.92,
-                                        ),
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  onPressed: () {
-                                    _openStudioSettingsDialog(profile);
-                                  },
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: AppColors.onPrimary
-                                        .withValues(alpha: 0.14),
-                                    foregroundColor: AppColors.onPrimary,
-                                  ),
-                                  icon: const Icon(
-                                    Icons.edit_rounded,
-                                    size: 18,
-                                  ),
-                                  tooltip: '스튜디오 정보 수정',
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                StudioAvatar(
-                                  name: profile.studio.name,
-                                  imageUrl: profile.studio.imageUrl,
-                                  size: 56,
-                                  borderRadius: 999,
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        profile.studio.name,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              color: AppColors.onPrimary,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (profile.studio.address?.isNotEmpty == true ||
-                                profile.studio.contactPhone?.isNotEmpty ==
-                                    true) ...[
-                              const SizedBox(height: 14),
-                              if (profile.studio.address?.isNotEmpty == true)
-                                Text(
-                                  profile.studio.address!,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: AppColors.onPrimary.withValues(
-                                          alpha: 0.88,
-                                        ),
-                                        height: 1.45,
-                                      ),
-                                ),
-                              if (profile.studio.address?.isNotEmpty == true &&
-                                  profile.studio.contactPhone?.isNotEmpty ==
-                                      true)
-                                const SizedBox(height: 6),
-                              if (profile.studio.contactPhone?.isNotEmpty ==
-                                  true)
-                                Text(
-                                  Formatters.phone(profile.studio.contactPhone),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: AppColors.onPrimary.withValues(
-                                          alpha: 0.88,
-                                        ),
-                                      ),
-                                ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      _AdminNavButton(
-                        destination: _destinations[0],
-                        selected: _index == 0,
-                        onTap: () => _setIndex(0),
-                      ),
-                      const SizedBox(height: 8),
-                      _AdminNavButton(
-                        destination: _destinations[1],
-                        selected: _index == 1,
-                        onTap: () => _setIndex(1),
-                      ),
-                      const SizedBox(height: 12),
-                      _AdminNavButton(
-                        destination: _destinations[2],
-                        selected: _index == 2,
-                        onTap: () => _setIndex(2),
-                      ),
-                      const SizedBox(height: 12),
-                      _AdminNavGroup(
-                        children: [
-                          _AdminNavButton(
-                            destination: _destinations[3],
-                            selected: _index == 3,
-                            onTap: () => _setIndex(3),
-                          ),
-                          const SizedBox(height: 8),
-                          _AdminNavButton(
-                            destination: _destinations[4],
-                            selected: _index == 4,
-                            onTap: () => _setIndex(4),
-                            trailing: _pendingWaitlistRequestCount > 0
-                                ? _AdminNavCountBadge(
-                                    count: _pendingWaitlistRequestCount,
-                                    backgroundColor:
-                                        AppColors.waitlistBackground,
-                                    foregroundColor:
-                                        AppColors.waitlistForeground,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 8),
-                          _AdminNavButton(
-                            destination: _destinations[7],
-                            selected: _index == 7,
-                            onTap: () => _setIndex(7),
-                            trailing: _pendingCancelRequestCount > 0
-                                ? _AdminNavCountBadge(
-                                    count: _pendingCancelRequestCount,
-                                    backgroundColor: AppColors.errorBackground,
-                                    foregroundColor: AppColors.errorForeground,
-                                  )
-                                : null,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _AdminNavGroup(
-                        children: [
-                          _AdminNavButton(
-                            destination: _destinations[5],
-                            selected: _index == 5,
-                            onTap: () => _setIndex(5),
-                          ),
-                          const SizedBox(height: 8),
-                          _AdminNavButton(
-                            destination: _destinations[6],
-                            selected: _index == 6,
-                            onTap: () => _setIndex(6),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _AdminNavButton(
-                        destination: _destinations[8],
-                        selected: _index == 8,
-                        onTap: () => _setIndex(8),
-                      ),
-                      const Spacer(),
-                      const SizedBox(height: 12),
-                      FilledButton.tonalIcon(
-                        onPressed: () {
-                          auth.signOut();
-                        },
-                        icon: const Icon(Icons.logout_rounded),
-                        label: const Text('로그아웃'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1380),
-                    child: IndexedStack(index: _index, children: screens),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+    return _ResponsiveAdminScaffold(
+      wideSidebar: _StudioAdminSidebar(
+        profile: profile,
+        destinations: _destinations,
+        selectedIndex: _index,
+        pendingWaitlistRequestCount: _pendingWaitlistRequestCount,
+        pendingCancelRequestCount: _pendingCancelRequestCount,
+        onSelectDestination: _setIndex,
+        onEditStudioSettings: () => _openStudioSettingsDialog(profile),
+        onSignOut: auth.signOut,
+        compact: false,
       ),
+      compactSidebar: _StudioAdminSidebar(
+        profile: profile,
+        destinations: _destinations,
+        selectedIndex: _index,
+        pendingWaitlistRequestCount: _pendingWaitlistRequestCount,
+        pendingCancelRequestCount: _pendingCancelRequestCount,
+        onSelectDestination: (value) {
+          Navigator.of(context).pop();
+          _setIndex(value);
+        },
+        onEditStudioSettings: () {
+          Navigator.of(context).pop();
+          _openStudioSettingsDialog(profile);
+        },
+        onSignOut: () {
+          Navigator.of(context).pop();
+          auth.signOut();
+        },
+        compact: true,
+      ),
+      compactTitle: currentDestination.label,
+      compactSubtitle: profile.studio.name,
+      content: IndexedStack(index: _index, children: screens),
     );
   }
 
@@ -2403,6 +2345,225 @@ class _AdminShellState extends State<_AdminShell> {
   }
 }
 
+class _StudioAdminSidebar extends StatelessWidget {
+  const _StudioAdminSidebar({
+    required this.profile,
+    required this.destinations,
+    required this.selectedIndex,
+    required this.pendingWaitlistRequestCount,
+    required this.pendingCancelRequestCount,
+    required this.onSelectDestination,
+    required this.onEditStudioSettings,
+    required this.onSignOut,
+    required this.compact,
+  });
+
+  final AdminProfile profile;
+  final List<_AdminDestination> destinations;
+  final int selectedIndex;
+  final int pendingWaitlistRequestCount;
+  final int pendingCancelRequestCount;
+  final ValueChanged<int> onSelectDestination;
+  final VoidCallback onEditStudioSettings;
+  final VoidCallback onSignOut;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final logoutButton = FilledButton.tonalIcon(
+      onPressed: onSignOut,
+      icon: const Icon(Icons.logout_rounded),
+      label: const Text('로그아웃'),
+    );
+
+    final content = <Widget>[
+      const _AdminBrandMark(),
+      const SizedBox(height: 18),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '스튜디오 정보',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.onPrimary.withValues(alpha: 0.92),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: onEditStudioSettings,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.onPrimary.withValues(
+                      alpha: 0.14,
+                    ),
+                    foregroundColor: AppColors.onPrimary,
+                  ),
+                  icon: const Icon(Icons.edit_rounded, size: 18),
+                  tooltip: '스튜디오 정보 수정',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StudioAvatar(
+                  name: profile.studio.name,
+                  imageUrl: profile.studio.imageUrl,
+                  size: 56,
+                  borderRadius: 999,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profile.studio.name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.onPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (profile.studio.address?.isNotEmpty == true ||
+                profile.studio.contactPhone?.isNotEmpty == true) ...[
+              const SizedBox(height: 14),
+              if (profile.studio.address?.isNotEmpty == true)
+                Text(
+                  profile.studio.address!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onPrimary.withValues(alpha: 0.88),
+                    height: 1.45,
+                  ),
+                ),
+              if (profile.studio.address?.isNotEmpty == true &&
+                  profile.studio.contactPhone?.isNotEmpty == true)
+                const SizedBox(height: 6),
+              if (profile.studio.contactPhone?.isNotEmpty == true)
+                Text(
+                  Formatters.phone(profile.studio.contactPhone),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onPrimary.withValues(alpha: 0.88),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
+      _AdminNavButton(
+        destination: destinations[0],
+        selected: selectedIndex == 0,
+        onTap: () => onSelectDestination(0),
+      ),
+      const SizedBox(height: 8),
+      _AdminNavButton(
+        destination: destinations[1],
+        selected: selectedIndex == 1,
+        onTap: () => onSelectDestination(1),
+      ),
+      const SizedBox(height: 12),
+      _AdminNavButton(
+        destination: destinations[2],
+        selected: selectedIndex == 2,
+        onTap: () => onSelectDestination(2),
+      ),
+      const SizedBox(height: 12),
+      _AdminNavGroup(
+        children: [
+          _AdminNavButton(
+            destination: destinations[3],
+            selected: selectedIndex == 3,
+            onTap: () => onSelectDestination(3),
+          ),
+          const SizedBox(height: 8),
+          _AdminNavButton(
+            destination: destinations[4],
+            selected: selectedIndex == 4,
+            onTap: () => onSelectDestination(4),
+            trailing: pendingWaitlistRequestCount > 0
+                ? _AdminNavCountBadge(
+                    count: pendingWaitlistRequestCount,
+                    backgroundColor: AppColors.waitlistBackground,
+                    foregroundColor: AppColors.waitlistForeground,
+                  )
+                : null,
+          ),
+          const SizedBox(height: 8),
+          _AdminNavButton(
+            destination: destinations[7],
+            selected: selectedIndex == 7,
+            onTap: () => onSelectDestination(7),
+            trailing: pendingCancelRequestCount > 0
+                ? _AdminNavCountBadge(
+                    count: pendingCancelRequestCount,
+                    backgroundColor: AppColors.errorBackground,
+                    foregroundColor: AppColors.errorForeground,
+                  )
+                : null,
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      _AdminNavGroup(
+        children: [
+          _AdminNavButton(
+            destination: destinations[5],
+            selected: selectedIndex == 5,
+            onTap: () => onSelectDestination(5),
+          ),
+          const SizedBox(height: 8),
+          _AdminNavButton(
+            destination: destinations[6],
+            selected: selectedIndex == 6,
+            onTap: () => onSelectDestination(6),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      _AdminNavButton(
+        destination: destinations[8],
+        selected: selectedIndex == 8,
+        onTap: () => onSelectDestination(8),
+      ),
+    ];
+
+    return SurfaceCard(
+      padding: const EdgeInsets.all(18),
+      child: compact
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [...content, const SizedBox(height: 18), logoutButton],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ListView(padding: EdgeInsets.zero, children: content),
+                ),
+                const SizedBox(height: 12),
+                logoutButton,
+              ],
+            ),
+    );
+  }
+}
+
 class _AdminDestination {
   const _AdminDestination({
     required this.label,
@@ -2472,10 +2633,7 @@ class _AdminNavButton extends StatelessWidget {
                   ],
                 ),
               ),
-              if (trailing != null) ...[
-                const SizedBox(width: 10),
-                trailing!,
-              ],
+              if (trailing != null) ...[const SizedBox(width: 10), trailing!],
             ],
           ),
         ),
@@ -7835,10 +7993,7 @@ class _AdminWeeklySessionBlock extends StatelessWidget {
                 ),
             ],
           ),
-          child: DefaultTextStyle(
-            style: labelSmall!,
-            child: content,
-          ),
+          child: DefaultTextStyle(style: labelSmall!, child: content),
         );
       },
     );
@@ -9337,10 +9492,7 @@ class _StudioCancelCommentDialogState
 }
 
 class _CancelRequestsPage extends StatefulWidget {
-  const _CancelRequestsPage({
-    required this.isActive,
-    this.onAttentionChanged,
-  });
+  const _CancelRequestsPage({required this.isActive, this.onAttentionChanged});
 
   final bool isActive;
   final VoidCallback? onAttentionChanged;
@@ -13929,7 +14081,9 @@ class _AdminStatusBucketSection extends StatelessWidget {
         if (isCollapsed) ...[
           const SizedBox(height: 6),
           Text(
-            children.isEmpty ? '보관된 항목이 없습니다.' : '${children.length}개 항목이 숨겨져 있습니다.',
+            children.isEmpty
+                ? '보관된 항목이 없습니다.'
+                : '${children.length}개 항목이 숨겨져 있습니다.',
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: AppColors.subtle),
